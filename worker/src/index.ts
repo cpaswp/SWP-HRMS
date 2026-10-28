@@ -66,6 +66,46 @@ export function createApp(dbFactory: (env: Env) => Sql | null = createDatabase) 
     }
   });
 
+  app.get("/api/v1/attendance", async (c) => {
+    const db = dbFactory(c.env);
+    if (!db) return c.json({ error: "database_not_configured" }, 503);
+    const limit = Math.min(Math.max(Number(c.req.query("limit") ?? 50) || 50, 1), 100);
+    const offset = Math.max(Number(c.req.query("offset") ?? 0) || 0, 0);
+    try {
+      const rows = await db`
+        SELECT id, employee_id, site_id, kind, recorded_at, latitude, longitude, distance_meters
+        FROM hrms_attendance_records
+        ORDER BY recorded_at DESC
+        LIMIT ${limit} OFFSET ${offset}
+      `;
+      return c.json({ data: rows, pagination: { limit, offset } });
+    } catch {
+      return c.json({ error: "database_unavailable" }, 503);
+    } finally {
+      await db.end({ timeout: 1 }).catch(() => undefined);
+    }
+  });
+
+  app.get("/api/v1/leave-requests", async (c) => {
+    const db = dbFactory(c.env);
+    if (!db) return c.json({ error: "database_not_configured" }, 503);
+    const limit = Math.min(Math.max(Number(c.req.query("limit") ?? 50) || 50, 1), 100);
+    const offset = Math.max(Number(c.req.query("offset") ?? 0) || 0, 0);
+    try {
+      const rows = await db`
+        SELECT id, employee_id, leave_type, start_date, end_date, status, created_at
+        FROM hrms_leave_requests
+        ORDER BY created_at DESC
+        LIMIT ${limit} OFFSET ${offset}
+      `;
+      return c.json({ data: rows, pagination: { limit, offset } });
+    } catch {
+      return c.json({ error: "database_unavailable" }, 503);
+    } finally {
+      await db.end({ timeout: 1 }).catch(() => undefined);
+    }
+  });
+
   app.notFound((c) => c.json({ error: "not_found" }, 404));
   app.onError((_error, c) => c.json({ error: "internal_error" }, 500));
   return app;
