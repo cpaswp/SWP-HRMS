@@ -1,6 +1,7 @@
 import json
 from decimal import Decimal
-from django.contrib.auth.decorators import login_required, staff_member_required
+from django.contrib.auth.decorators import login_required
+from django.contrib.admin.views.decorators import staff_member_required
 from django.db.models import Sum, Avg, Count, F
 from django.db import transaction
 from django.contrib import messages
