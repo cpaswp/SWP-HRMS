@@ -17,8 +17,19 @@ for (const file of files) {
   const source = await readFile(path.join(migrationsDir, file), "utf8");
   migrationContents.push({ file, source });
   const version = file.replace(/\.sql$/, "");
-  if (!source.includes(`VALUES ('${version}')`)) {
-    failures.push(`${file}: missing its own migration ledger entry (${version})`);
+  const ledgerEntry = new RegExp("VALUES\\s*\\(\\s*['\"]" + version + "['\"]\\s*\\)", "gi");
+  const ledgerMatches = [...source.matchAll(ledgerEntry)];
+  if (ledgerMatches.length !== 1) {
+    failures.push(`${file}: expected exactly one ledger entry for ${version}; found ${ledgerMatches.length}`);
+  }
+  if (!source.trimStart().toUpperCase().startsWith("BEGIN;")) {
+    failures.push(`${file}: migration must begin with BEGIN;`);
+  }
+  if (!source.trimEnd().toUpperCase().endsWith("COMMIT;")) {
+    failures.push(`${file}: migration must end with COMMIT;`);
+  }
+  if (migrationVersions.has(version)) {
+    failures.push(`${file}: duplicate migration version ${version}`);
   }
   migrationVersions.set(version, file);
   for (const match of source.matchAll(/CREATE TABLE IF NOT EXISTS\s+([a-zA-Z_][a-zA-Z0-9_]*)/gi)) {
@@ -33,6 +44,9 @@ for (const file of files) {
 }
 
 if (files.length === 0) failures.push("No numbered SQL migrations found.");
+if (files.length > 0 && files[0].slice(0, 4) !== "0001") {
+  failures.push(`First migration must start at 0001; found ${files[0]}`);
+}
 for (const { file, source } of migrationContents) {
   for (const match of source.matchAll(/^\s*ALTER TABLE\s+([a-zA-Z_][a-zA-Z0-9_]*)/gim)) {
     const table = match[1].toLowerCase();
