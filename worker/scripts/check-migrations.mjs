@@ -22,7 +22,7 @@ for (const file of files) {
   if (ledgerMatches.length !== 1) {
     failures.push(`${file}: expected exactly one ledger entry for ${version}; found ${ledgerMatches.length}`);
   }
-  const firstStatement = source.replace(/^(?:\\s+|--[^\\n]*(?:\\n|$))*/, "");
+  const firstStatement = source.replace(/^(?:\s+|--[^\n]*(?:\n|$))*/, "");
   if (!firstStatement.toUpperCase().startsWith("BEGIN;")) {
     failures.push(`${file}: migration must begin with BEGIN;`);
   }
