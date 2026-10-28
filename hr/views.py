@@ -1,7 +1,10 @@
 import json
 from decimal import Decimal
 from django.contrib.auth.decorators import login_required
-from django.db.models import Sum, Avg, Count, F\nfrom django.db import transaction\nfrom django.contrib import messages\nfrom datetime import date
+from django.db.models import Sum, Avg, Count, F
+from django.db import transaction
+from django.contrib import messages
+from datetime import date
 from django.http import JsonResponse, HttpResponseForbidden
 from django.shortcuts import render, get_object_or_404, redirect
 from django.utils import timezone
