@@ -1,12 +1,21 @@
 from django.contrib import admin
 from django.contrib.auth import views as auth_views
 from django.conf.urls.i18n import set_language
+from django.db import connections
+from django.db.utils import DatabaseError
 from django.http import JsonResponse
 from django.shortcuts import redirect
 from django.urls import include, path
 
+
 def health(request):
-    return JsonResponse({"status": "ok"})
+    """Readiness endpoint: report unhealthy when the configured database is unreachable."""
+    try:
+        connections["default"].ensure_connection()
+    except DatabaseError:
+        return JsonResponse({"status": "error", "database": "unavailable"}, status=503)
+    return JsonResponse({"status": "ok", "database": "ok"})
+
 
 urlpatterns = [
     path("health/", health, name="health"),
