@@ -8,7 +8,7 @@ from .models import Department, JobPosition, Employee, PayrollPeriod, PayrollIte
 
 class HRScreenTests(TestCase):
     def setUp(self):
-        self.user = get_user_model().objects.create_user(username="hr-test", password="a-strong-test-password")
+        self.user = get_user_model().objects.create_user(username="hr-test", password="a-strong-test-password", is_staff=True)
         self.department = Department.objects.create(code="OPS", name="العمليات")
         self.position = JobPosition.objects.create(code="OPS-01", title="أخصائي عمليات", department=self.department, job_description="وصف تجريبي", responsibilities="مهام تجريبية")
         self.employee = Employee.objects.create(user=self.user, employee_code="EMP-001", full_name="موظف تجريبي", department=self.department, position=self.position, date_of_birth=date(1990, 1, 1))
@@ -16,6 +16,21 @@ class HRScreenTests(TestCase):
     def test_hr_dashboard_requires_login(self):
         response = self.client.get(reverse("hr:dashboard"))
         self.assertEqual(response.status_code, 302)
+
+    def test_sensitive_employee_and_payroll_views_require_staff(self):
+        regular = get_user_model().objects.create_user(
+            username="regular-employee", password="a-strong-test-password"
+        )
+        self.client.force_login(regular)
+        for url in (
+            reverse("hr:employees"),
+            reverse("hr:employee_detail_api", args=[self.employee.pk]),
+            reverse("hr:payroll"),
+            reverse("hr:management_reports"),
+        ):
+            with self.subTest(url=url):
+                response = self.client.get(url)
+                self.assertEqual(response.status_code, 302)
 
     def test_employee_directory_and_auto_fill_api(self):
         self.client.force_login(self.user)
