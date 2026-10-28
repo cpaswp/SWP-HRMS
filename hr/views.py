@@ -1,6 +1,6 @@
 import json
 from decimal import Decimal
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, staff_member_required
 from django.db.models import Sum, Avg, Count, F
 from django.db import transaction
 from django.contrib import messages
@@ -29,6 +29,7 @@ def dashboard(request):
 
 
 @login_required
+@staff_member_required
 def employee_list(request):
     query = request.GET.get("q", "").strip()
     employees = Employee.objects.select_related("department", "position", "manager").all()
@@ -39,6 +40,7 @@ def employee_list(request):
 
 
 @login_required
+@staff_member_required
 def employee_detail_api(request, employee_id):
     employee = get_object_or_404(Employee.objects.select_related("department", "position", "manager"), pk=employee_id)
     data = {
@@ -57,6 +59,7 @@ def employee_detail_api(request, employee_id):
 
 
 @login_required
+@staff_member_required
 def org_chart(request):
     employees = list(Employee.objects.filter(status=Employee.Status.ACTIVE).select_related("department", "position", "manager").order_by("full_name"))
     nodes = [{"id": e.pk, "name": e.full_name, "code": e.employee_code, "title": e.position.title if e.position_id else "غير محدد", "department": e.department.name if e.department_id else "غير محدد", "manager_id": e.manager_id} for e in employees]
@@ -64,6 +67,7 @@ def org_chart(request):
 
 
 @login_required
+@staff_member_required
 def payroll_preview(request):
     period = PayrollPeriod.objects.order_by("-start_date").first()
     items = PayrollItem.objects.filter(period=period).select_related("employee") if period else PayrollItem.objects.none()
@@ -72,6 +76,7 @@ def payroll_preview(request):
 
 
 @login_required
+@staff_member_required
 def approval_inbox(request):
     pending = ApprovalRequest.objects.filter(status=ApprovalRequest.Status.PENDING).select_related("requester").prefetch_related("steps")
     return render(request, "hr/approvals.html", {"requests": pending[:200]})
@@ -79,6 +84,7 @@ def approval_inbox(request):
 
 
 @login_required
+@staff_member_required
 def management_reports(request):
     """Cross-module management report sourced from canonical HR records."""
     from django.db.models import Count, Q
@@ -198,6 +204,7 @@ def management_reports(request):
 
 
 @login_required
+@staff_member_required
 def employee_id_card(request, employee_id):
     """Print-ready front/back employee ID card; company data comes from the user's active membership."""
     employee = get_object_or_404(
@@ -473,6 +480,7 @@ def record_attachments(request):
 
 
 @login_required
+@staff_member_required
 def recruitment_interviews(request):
     """Interview calendar, weighted scoring, stage progression and candidate ranking."""
     from decimal import Decimal, InvalidOperation
@@ -746,6 +754,7 @@ def talent_center(request):
 
 
 @login_required
+@staff_member_required
 def employee_excellence_dashboard(request):
     """Transparent, configurable ranking from approved HR performance reviews only."""
     if not request.user.is_superuser and not request.user.has_perm("hr.view_performancereview"):
@@ -819,6 +828,7 @@ def employee_excellence_dashboard(request):
 
 
 @login_required
+@staff_member_required
 def employee_fund_center(request):
     """HR-only fund operations; payout decisions remain explicitly human-approved."""
     fund_view_permissions = ("hr.view_employeefundpolicy", "hr.view_employeefundmembership", "hr.view_employeefundcontribution", "hr.view_employeeassociationturn", "hr.view_employeeemergencyclaim")
