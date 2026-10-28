@@ -117,7 +117,7 @@ export function createApp(dbFactory: (env: Env) => Sql | null = createDatabase) 
 function parsePagination(limitRaw?: string, offsetRaw?: string): { limit: number; offset: number } | null {
   const limitText = limitRaw ?? "50";
   const offsetText = offsetRaw ?? "0";
-  if (!/^\\d+$/.test(limitText) || !/^\\d+$/.test(offsetText)) return null;
+  if (!/^\d+$/.test(limitText) || !/^\d+$/.test(offsetText)) return null;
   const limit = Number(limitText);
   const offset = Number(offsetText);
   if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100) return null;
