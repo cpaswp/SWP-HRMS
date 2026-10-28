@@ -15,6 +15,7 @@ from .models import (Employee, Department, AttendanceRecord, LeaveRequest, Appro
 
 
 @login_required
+@staff_member_required
 def dashboard(request):
     active = Employee.objects.filter(status=Employee.Status.ACTIVE)
     context = {
