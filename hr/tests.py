@@ -182,3 +182,10 @@ class EmployeeExcellenceAndFundTests(TestCase):
         self.assertEqual(item.net_salary, Decimal("800.00"))
         self.assertEqual(EmployeeFundContribution.objects.filter(membership=membership, period=period).count(), 1)
 
+
+
+class HealthEndpointTests(TestCase):
+    def test_health_endpoint_reports_database_readiness(self):
+        response = self.client.get("/health/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"status": "ok", "database": "ok"})
