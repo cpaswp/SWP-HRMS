@@ -20,6 +20,6 @@ This is a parallel Worker implementation. The Django application remains untouch
 Inspect `migrations/0001_hrms_core.sql` and apply it only to the separately provisioned HRMS test database. Do not run it against ERP. Do not store connection strings in Git. Deployment binding `HRMS_DB` must be a Hyperdrive configuration built for that dedicated database.
 
 ## Current milestone
-Implemented: Worker entry point, health endpoint, authenticated read-only department/employee list endpoints, bounded pagination, namespaced PostgreSQL schema for the core employee directory, and initial security tests.
+Implemented: Worker entry point, health endpoint, authenticated read-only department/employee list endpoints, bounded pagination, namespaced PostgreSQL schema for the core employee directory plus attendance, leave balances/requests, and payroll periods/items; read-only department, employee, attendance, and leave-request endpoints; bounded pagination; and initial security tests.
 
-Not yet ported: Django admin/session login, full model inventory, write workflows, attendance/geolocation, leave approvals, payroll calculations and approvals, recruitment, attachments/object storage, exports, and role-based permissions. These are explicit follow-on milestones; this scaffold must not be described as a feature-complete HRMS.
+Not yet ported: Django admin/session login, complete model inventory, write workflows and approval actions, geofence validation and attendance rules, leave approval/balance accrual logic, payroll calculations/tax/insurance and approvals, recruitment, employee documents/object storage, exports, and role-based permissions. These are explicit follow-on milestones; this scaffold must not be described as a feature-complete HRMS.
