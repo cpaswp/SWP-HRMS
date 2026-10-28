@@ -15,6 +15,28 @@ from .models import (
 )
 
 
+
+
+@admin.register(Department)
+class DepartmentAdmin(admin.ModelAdmin):
+    search_fields = ("name", "code")
+
+
+@admin.register(JobPosition)
+class JobPositionAdmin(admin.ModelAdmin):
+    search_fields = ("title", "code", "department__name")
+
+
+@admin.register(EmployeeDocument)
+class EmployeeDocumentAdmin(admin.ModelAdmin):
+    search_fields = ("title", "employee__full_name", "employee__employee_code")
+
+
+@admin.register(Skill)
+class SkillAdmin(admin.ModelAdmin):
+    search_fields = ("name", "category")
+
+
 @admin.register(Employee)
 class EmployeeAdmin(admin.ModelAdmin):
     list_display = ("employee_code", "full_name", "department", "position", "manager", "status")
@@ -71,7 +93,7 @@ class SuccessionPlanAdmin(admin.ModelAdmin):
 
 
 admin.site.register([
-    Department, JobPosition, EmployeeDocument, AttendanceSite, AttendanceRecord,
+    AttendanceSite, AttendanceRecord,
     LeaveRequest, ApprovalRequest, ApprovalStep, PayrollPeriod, PayrollItem,
     LeavePolicy, EmployeeLeaveBalance, RecruitmentCandidate, MissionRequest, AttendanceException,
     EmployeeInsuranceRecord, InsuranceFormRecord, SalaryChange, PayrollComponent, EmployeeDeduction,
@@ -81,7 +103,7 @@ admin.site.register([
     OfferLetter, EmployeeDependent, EmployeeMedicalBenefit, EmployeeHousingAssignment,
     EmployeeChildcareBenefit, EmployeeBenefitEnrollment, AttendanceDeviceConfiguration, RegulationRule,
     HiringDocumentTemplate, RecordAttachment, RecruitmentInterview, InterviewCriterion, InterviewEvaluation,
-    Skill,
+
 ])
 
 admin.site.register([
