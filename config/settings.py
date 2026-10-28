@@ -1,15 +1,53 @@
 import os
+import re
 from pathlib import Path
+from urllib.parse import urlparse
+
 import dj_database_url
+from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 DEBUG = os.getenv("DJANGO_DEBUG", "False").lower() in {"1", "true", "yes", "on"}
-SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-only-change-this-key-before-deployment")
-if not DEBUG and (not os.getenv("DJANGO_SECRET_KEY") or SECRET_KEY == "dev-only-change-this-key-before-deployment"):
-    from django.core.exceptions import ImproperlyConfigured
-    raise ImproperlyConfigured("Set a strong DJANGO_SECRET_KEY in the deployment environment when DEBUG=False.")
-ALLOWED_HOSTS = [h.strip() for h in os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,testserver").split(",") if h.strip()]
-CSRF_TRUSTED_ORIGINS = [u.strip() for u in os.getenv("DJANGO_CSRF_TRUSTED_ORIGINS", "").split(",") if u.strip()]
+
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "").strip()
+if DEBUG and not SECRET_KEY:
+    SECRET_KEY = "dev-only-insecure-key-for-local-development"
+elif not DEBUG:
+    # Reject placeholders and weak values before Django starts serving requests.
+    weak_key_values = {
+        "dev-only-change-this-key-before-deployment",
+        "dev-only-insecure-key-for-local-development",
+        "change-me",
+        "changeme",
+        "secret",
+        "19841984",
+    }
+    if len(SECRET_KEY) < 50 or SECRET_KEY.lower() in weak_key_values:
+        raise ImproperlyConfigured(
+            "Set DJANGO_SECRET_KEY to a unique random secret of at least 50 characters in production."
+        )
+
+raw_allowed_hosts = os.getenv("DJANGO_ALLOWED_HOSTS", "").strip()
+if DEBUG:
+    if not raw_allowed_hosts:
+        raw_allowed_hosts = "localhost,127.0.0.1,testserver"
+else:
+    if not raw_allowed_hosts:
+        raise ImproperlyConfigured(
+            "Set DJANGO_ALLOWED_HOSTS to the exact deployment hostname(s), without scheme or path."
+        )
+ALLOWED_HOSTS = [h.strip() for h in raw_allowed_hosts.split(",") if h.strip()]
+if not DEBUG and (not ALLOWED_HOSTS or "*" in ALLOWED_HOSTS):
+    raise ImproperlyConfigured("Production DJANGO_ALLOWED_HOSTS must contain explicit hostnames, not '*'.")
+CSRF_TRUSTED_ORIGINS = [
+    u.strip() for u in os.getenv("DJANGO_CSRF_TRUSTED_ORIGINS", "").split(",") if u.strip()
+]
+if not DEBUG:
+    for origin in CSRF_TRUSTED_ORIGINS:
+        if not origin.startswith(("https://", "http://")) or not urlparse(origin).netloc:
+            raise ImproperlyConfigured(
+                "DJANGO_CSRF_TRUSTED_ORIGINS must contain full origins such as https://hr.example.com."
+            )
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -49,8 +87,18 @@ WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
+if not DEBUG and not DATABASE_URL:
+    raise ImproperlyConfigured(
+        "DATABASE_URL is required in production; refusing to start with an ephemeral/local SQLite database."
+    )
 if DATABASE_URL:
-    DATABASES = {"default": dj_database_url.parse(DATABASE_URL, conn_max_age=600, ssl_require=not DEBUG)}
+    DATABASES = {
+        "default": dj_database_url.parse(
+            DATABASE_URL,
+            conn_max_age=int(os.getenv("DJANGO_DB_CONN_MAX_AGE", "60")),
+            ssl_require=not DEBUG,
+        )
+    }
 else:
     DATABASES = {"default": {"ENGINE": "django.db.backends.sqlite3", "NAME": BASE_DIR / "db.sqlite3"}}
 
@@ -70,7 +118,10 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static"] if (BASE_DIR / "static").exists() else []
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
-    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage" if DEBUG else "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"
+        if DEBUG else "whitenoise.storage.CompressedManifestStaticFilesStorage"
+    },
 }
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LOGIN_URL = "login"
