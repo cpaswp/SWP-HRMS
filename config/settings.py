@@ -1,5 +1,4 @@
 import os
-import re
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -37,8 +36,14 @@ else:
             "Set DJANGO_ALLOWED_HOSTS to the exact deployment hostname(s), without scheme or path."
         )
 ALLOWED_HOSTS = [h.strip() for h in raw_allowed_hosts.split(",") if h.strip()]
-if not DEBUG and (not ALLOWED_HOSTS or "*" in ALLOWED_HOSTS):
-    raise ImproperlyConfigured("Production DJANGO_ALLOWED_HOSTS must contain explicit hostnames, not '*'.")
+if not DEBUG and (
+    not ALLOWED_HOSTS
+    or "*" in ALLOWED_HOSTS
+    or any("://" in host or "/" in host or " " in host for host in ALLOWED_HOSTS)
+):
+    raise ImproperlyConfigured(
+        "Production DJANGO_ALLOWED_HOSTS must contain explicit hostnames only, without scheme, path, spaces, or '*'."
+    )
 CSRF_TRUSTED_ORIGINS = [
     u.strip() for u in os.getenv("DJANGO_CSRF_TRUSTED_ORIGINS", "").split(",") if u.strip()
 ]
@@ -90,6 +95,10 @@ DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 if not DEBUG and not DATABASE_URL:
     raise ImproperlyConfigured(
         "DATABASE_URL is required in production; refusing to start with an ephemeral/local SQLite database."
+    )
+if not DEBUG and urlparse(DATABASE_URL).scheme not in {"postgres", "postgresql", "postgresql+psycopg"}:
+    raise ImproperlyConfigured(
+        "Production DATABASE_URL must point to PostgreSQL/Neon; SQLite is development-only."
     )
 if DATABASE_URL:
     DATABASES = {
