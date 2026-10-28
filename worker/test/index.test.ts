@@ -33,6 +33,27 @@ describe("HRMS Worker security and health", () => {
     expect(await response.json()).toEqual({ error: "database_not_configured" });
   });
 
+
+  it("rejects malformed and excessive pagination before querying the database", async () => {
+    const invalidQueries = [
+      "?limit=abc",
+      "?limit=0",
+      "?limit=101",
+      "?offset=-1",
+      "?offset=1000001",
+      "?offset=1.5",
+    ];
+    for (const path of ["/api/v1/employees", "/api/v1/attendance", "/api/v1/leave-requests"]) {
+      for (const query of invalidQueries) {
+        const response = await app.request(path + query, {
+          headers: { Authorization: "Bearer " + env.HRMS_API_TOKEN },
+        }, env);
+        expect(response.status, path + query).toBe(400);
+        expect(await response.json()).toEqual({ error: "invalid_pagination" });
+      }
+    }
+  });
+
   it("does not expose unknown routes", async () => {
     const response = await app.request("/unknown", {}, env);
     expect(response.status).toBe(404);
