@@ -8,7 +8,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("hr", "0005_recordattachment"),
+        ("hr", "0005_recruitmentcandidate"),
     ]
     operations = [
         migrations.CreateModel(
