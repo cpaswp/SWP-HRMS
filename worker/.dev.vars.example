@@ -1,0 +1,5 @@
+# Local-only values. Never commit real credentials.
+APP_ENV = "development"
+HRMS_API_TOKEN = "replace-with-a-long-random-token"
+# Optional for local tests only; point exclusively at the dedicated HRMS test database.
+HRMS_DATABASE_URL = "postgres://USER:PASSWORD@HOST/HRMS_TEST_DB?sslmode=require"
