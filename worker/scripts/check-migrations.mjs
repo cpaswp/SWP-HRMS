@@ -33,6 +33,15 @@ for (const file of files) {
     failures.push(`${file}: duplicate migration version ${version}`);
   }
   migrationVersions.set(version, file);
+  if (/\\bCREATE\\s+TABLE\\s+(?!IF\\s+NOT\\s+EXISTS\\b)/i.test(source)) {
+    failures.push(`${file}: CREATE TABLE must use IF NOT EXISTS for safe re-runs`);
+  }
+  if (/\\bCREATE\\s+(?:UNIQUE\\s+)?INDEX\\s+(?!IF\\s+NOT\\s+EXISTS\\b)/i.test(source)) {
+    failures.push(`${file}: CREATE INDEX must use IF NOT EXISTS for safe re-runs`);
+  }
+  if (/\\bALTER\\s+TABLE\\s+[a-zA-Z_][a-zA-Z0-9_]*\\s+ADD\\s+COLUMN\\s+(?!IF\\s+NOT\\s+EXISTS\\b)/i.test(source)) {
+    failures.push(`${file}: ADD COLUMN must use IF NOT EXISTS for safe re-runs`);
+  }
   for (const match of source.matchAll(/CREATE TABLE IF NOT EXISTS\s+([a-zA-Z_][a-zA-Z0-9_]*)/gi)) {
     const table = match[1].toLowerCase();
     if (!table.startsWith("hrms_")) failures.push(`${file}: non-HRMS table declaration ${table}`);
