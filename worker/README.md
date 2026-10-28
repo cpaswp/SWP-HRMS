@@ -17,9 +17,9 @@ This is a parallel Worker implementation. The Django application remains untouch
 5. Start locally with `npm run dev`.
 
 ## Database migration
-Inspect `migrations/0001_hrms_core.sql` and apply it only to the separately provisioned HRMS test database. Do not run it against ERP. Do not store connection strings in Git. Deployment binding `HRMS_DB` must be a Hyperdrive configuration built for that dedicated database.
+Inspect and apply `migrations/0001_hrms_core.sql`, `migrations/0002_hrms_operations.sql`, and `migrations/0003_hrms_approvals_recruitment.sql` in order, only to the separately provisioned HRMS test database. Do not run it against ERP. Do not store connection strings in Git. Deployment binding `HRMS_DB` must be a Hyperdrive configuration built for that dedicated database.
 
 ## Current milestone
-Implemented: Worker entry point, health endpoint, authenticated read-only department/employee list endpoints, bounded pagination, namespaced PostgreSQL schema for the core employee directory plus attendance, leave balances/requests, and payroll periods/items; read-only department, employee, attendance, and leave-request endpoints; bounded pagination; and initial security tests.
+Implemented: Worker entry point, health endpoint, authenticated read-only department/employee list endpoints, bounded pagination, namespaced PostgreSQL schema for the core employee directory plus attendance, leave balances/requests, payroll periods/items, approval steps, recruitment candidates, employee document metadata, and skills; read-only department, employee, attendance, and leave-request endpoints; bounded pagination; and initial security tests.
 
 Not yet ported: Django admin/session login, complete model inventory, write workflows and approval actions, geofence validation and attendance rules, leave approval/balance accrual logic, payroll calculations/tax/insurance and approvals, recruitment, employee documents/object storage, exports, and role-based permissions. These are explicit follow-on milestones; this scaffold must not be described as a feature-complete HRMS.
