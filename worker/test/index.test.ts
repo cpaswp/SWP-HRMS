@@ -22,13 +22,13 @@ describe("HRMS Worker security and health", () => {
   });
 
   it("requires authentication for attendance data", async () => {
-    const response = await app.request("/api/v1/attendance", { headers: { Authorization: "Bearer " + env.HRMS_API_TOKEN } }, env);
+    const response = await app.request("/api/v1/attendance?limit=50", { headers: { Authorization: "Bearer " + env.HRMS_API_TOKEN } }, env);
     expect(response.status).toBe(503);
     expect(await response.json()).toEqual({ error: "database_not_configured" });
   });
 
   it("requires authentication for leave requests", async () => {
-    const response = await app.request("/api/v1/leave-requests", { headers: { Authorization: "Bearer " + env.HRMS_API_TOKEN } }, env);
+    const response = await app.request("/api/v1/leave-requests?limit=50", { headers: { Authorization: "Bearer " + env.HRMS_API_TOKEN } }, env);
     expect(response.status).toBe(503);
     expect(await response.json()).toEqual({ error: "database_not_configured" });
   });
