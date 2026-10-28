@@ -49,10 +49,11 @@ export function createApp(dbFactory: (env: Env) => Sql | null = createDatabase) 
   });
 
   app.get("/api/v1/employees", async (c) => {
+    const pagination = parsePagination(c.req.query("limit"), c.req.query("offset"));
+    if (!pagination) return c.json({ error: "invalid_pagination" }, 400);
+    const { limit, offset } = pagination;
     const db = dbFactory(c.env);
     if (!db) return c.json({ error: "database_not_configured" }, 503);
-    const limit = Math.min(Math.max(Number(c.req.query("limit") ?? 50) || 50, 1), 100);
-    const offset = Math.max(Number(c.req.query("offset") ?? 0) || 0, 0);
     try {
       const rows = await db`
         SELECT id, employee_code, full_name, email, phone, department_id, position_id, status, hire_date
@@ -67,10 +68,11 @@ export function createApp(dbFactory: (env: Env) => Sql | null = createDatabase) 
   });
 
   app.get("/api/v1/attendance", async (c) => {
+    const pagination = parsePagination(c.req.query("limit"), c.req.query("offset"));
+    if (!pagination) return c.json({ error: "invalid_pagination" }, 400);
+    const { limit, offset } = pagination;
     const db = dbFactory(c.env);
     if (!db) return c.json({ error: "database_not_configured" }, 503);
-    const limit = Math.min(Math.max(Number(c.req.query("limit") ?? 50) || 50, 1), 100);
-    const offset = Math.max(Number(c.req.query("offset") ?? 0) || 0, 0);
     try {
       const rows = await db`
         SELECT id, employee_id, site_id, kind, recorded_at, latitude, longitude, distance_meters
@@ -87,10 +89,11 @@ export function createApp(dbFactory: (env: Env) => Sql | null = createDatabase) 
   });
 
   app.get("/api/v1/leave-requests", async (c) => {
+    const pagination = parsePagination(c.req.query("limit"), c.req.query("offset"));
+    if (!pagination) return c.json({ error: "invalid_pagination" }, 400);
+    const { limit, offset } = pagination;
     const db = dbFactory(c.env);
     if (!db) return c.json({ error: "database_not_configured" }, 503);
-    const limit = Math.min(Math.max(Number(c.req.query("limit") ?? 50) || 50, 1), 100);
-    const offset = Math.max(Number(c.req.query("offset") ?? 0) || 0, 0);
     try {
       const rows = await db`
         SELECT id, employee_id, leave_type, start_date, end_date, status, created_at
@@ -111,6 +114,17 @@ export function createApp(dbFactory: (env: Env) => Sql | null = createDatabase) 
   return app;
 }
 
+function parsePagination(limitRaw?: string, offsetRaw?: string): { limit: number; offset: number } | null {
+  const limitText = limitRaw ?? "50";
+  const offsetText = offsetRaw ?? "0";
+  if (!/^\\d+$/.test(limitText) || !/^\\d+$/.test(offsetText)) return null;
+  const limit = Number(limitText);
+  const offset = Number(offsetText);
+  if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100) return null;
+  if (!Number.isSafeInteger(offset) || offset < 0 || offset > 1_000_000) return null;
+  return { limit, offset };
+}
+
 function createDatabase(env: Env): Sql | null {
   // Hyperdrive is preferred for deployed Worker -> PostgreSQL connectivity.
   const connectionString = env.HRMS_DB?.connectionString ?? env.HRMS_DATABASE_URL;
@@ -120,7 +134,7 @@ function createDatabase(env: Env): Sql | null {
   const databaseName = (() => {
     try { return new URL(connectionString).pathname.replace(/^\//, ""); } catch { return ""; }
   })();
-  if (!databaseName.toLowerCase().includes("hrms")) {
+  if (!databaseName.toLowerCase().includes("hrms") || databaseName.toLowerCase().includes("erp")) {
     throw new Error("HRMS database name must include 'hrms'; refusing a potentially shared ERP database.");
   }
   return postgres(connectionString, { max: 1, idle_timeout: 5, connect_timeout: 5, ssl: "require" });
