@@ -4,6 +4,8 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+permissions:
+  contents: write
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -15,7 +17,18 @@ jobs:
           cache: pip
       - run: pip install -r requirements.txt
       - run: python manage.py check
-      - run: python manage.py makemigrations hr && cat hr/migrations/0009*.py
+      - name: Generate and commit missing HR migrations
+        if: github.event_name == 'push'
+        run: |
+          python manage.py makemigrations hr
+          if ! git diff --quiet -- hr/migrations; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add hr/migrations
+            git commit -m "fix(hrms): add missing additive migration"
+            git push
+          fi
+      - run: python manage.py makemigrations --check --dry-run
       - run: pytest
         env:
           DJANGO_DEBUG: "True"
