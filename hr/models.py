@@ -1106,7 +1106,7 @@ class RecordAttachment(models.Model):
     """Reusable document attachments for any HR record."""
     content_type = models.ForeignKey("contenttypes.ContentType", on_delete=models.CASCADE, verbose_name="نوع السجل")
     object_id = models.PositiveBigIntegerField("رقم السجل")
-    content_object = models.GenericForeignKey("content_type", "object_id")
+    content_object = GenericForeignKey("content_type", "object_id")
     title = models.CharField("عنوان المرفق", max_length=180)
     file = models.FileField("الملف المرفق", upload_to="hr/record-attachments/%Y/%m/")
     category = models.CharField("تصنيف المرفق", max_length=80, blank=True)
