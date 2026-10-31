@@ -6,9 +6,10 @@ import { fileURLToPath } from "node:url";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const migrationsDir = path.join(here, "migrations");
 const connectionString = process.env.HRMS_DATABASE_URL;
+const REQUIRED_TEST_DATABASE = "swp_hrms_test";
 
 if (!connectionString) {
-  console.error("Missing HRMS_DATABASE_URL. Set it only for a dedicated HRMS database.");
+  console.error("Missing HRMS_DATABASE_URL. Set it only for the dedicated HRMS test database.");
   process.exit(1);
 }
 
@@ -21,8 +22,9 @@ try {
   process.exit(1);
 }
 
-if (!databaseName.toLowerCase().includes("hrms") || databaseName.toLowerCase().includes("erp")) {
-  console.error("Refusing migration: database name must include 'hrms' and must not include 'erp'.");
+// Strict allow-list: never permit the production/original swp-hrms database here.
+if (databaseName !== REQUIRED_TEST_DATABASE) {
+  console.error(`Refusing migration: expected database "${REQUIRED_TEST_DATABASE}", received "${databaseName}".`);
   process.exit(1);
 }
 
@@ -46,11 +48,8 @@ const sql = postgres(connectionString, {
 try {
   const identity = await sql`SELECT current_database() AS database_name, current_user AS database_user`;
   const actualName = String(identity[0]?.database_name ?? "");
-  if (actualName !== databaseName) {
-    throw new Error("Connected database name does not match the URL database name.");
-  }
-  if (!actualName.toLowerCase().includes("hrms") || actualName.toLowerCase().includes("erp")) {
-    throw new Error("Connection safety check failed; refusing to run migrations.");
+  if (actualName !== REQUIRED_TEST_DATABASE || actualName !== databaseName) {
+    throw new Error(`Connected database must be exactly "${REQUIRED_TEST_DATABASE}"; refusing to run migrations.`);
   }
 
   for (const file of files) {
@@ -72,7 +71,6 @@ try {
 
     const contents = await readFile(path.join(migrationsDir, file), "utf8");
     console.log(`APPLY ${file}`);
-    // Each migration owns its transaction and records its version atomically.
     await sql.unsafe(contents);
     const recorded = await sql`SELECT 1 FROM hrms_schema_migrations WHERE version = ${version} LIMIT 1`;
     if (recorded.length === 0) {
@@ -80,7 +78,7 @@ try {
     }
     console.log(`OK ${file}`);
   }
-  console.log(`All migrations applied to dedicated database: ${databaseName}`);
+  console.log(`All migrations applied to dedicated test database: ${REQUIRED_TEST_DATABASE}`);
 } catch (error) {
   console.error("Migration failed:", error instanceof Error ? error.message : String(error));
   process.exitCode = 1;
