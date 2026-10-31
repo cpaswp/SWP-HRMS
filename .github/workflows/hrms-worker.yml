@@ -10,6 +10,12 @@ on:
       - "worker/**"
       - ".github/workflows/hrms-worker.yml"
   workflow_dispatch:
+    inputs:
+      run_database_migrations:
+        description: "Apply pending migrations to the dedicated HRMS database"
+        required: true
+        type: boolean
+        default: false
 
 jobs:
   worker:
@@ -22,7 +28,19 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm install
+          cache: npm
+          cache-dependency-path: worker/package-lock.json
+      - run: npm ci
       - run: npm test
       - run: npm run check:migrations
       - run: npm run typecheck
+      - name: Apply HRMS database migrations (manual opt-in only)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_database_migrations == true }}
+        env:
+          HRMS_DATABASE_URL: ${{ secrets.HRMS_DATABASE_URL }}
+        run: |
+          if [ -z "$HRMS_DATABASE_URL" ]; then
+            echo "::error::HRMS_DATABASE_URL repository secret is not configured."
+            exit 1
+          fi
+          npm run migrate
