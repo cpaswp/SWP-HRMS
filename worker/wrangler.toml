@@ -1,0 +1,13 @@
+name = "swp-hrms-worker"
+main = "src/index.ts"
+compatibility_date = "2026-10-28"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+APP_ENV = "test"
+
+# Bind a dedicated HRMS Hyperdrive configuration only after provisioning a
+# separate HRMS PostgreSQL database. Never reuse the ERP binding.
+# [[hyperdrive]]
+# binding = "HRMS_DB"
+# id = "SET_HRMS_TEST_HYPERDRIVE_ID"
