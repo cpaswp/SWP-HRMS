@@ -10,6 +10,11 @@ export type Env = {
 
 type Sql = ReturnType<typeof postgres>;
 
+export function isAllowedHrmsDatabase(databaseName: string, appEnv = "development"): boolean {
+  const expectedDatabase = appEnv === "production" ? "swp_hrms_prod" : "swp_hrms_test";
+  return databaseName === expectedDatabase;
+}
+
 export function createApp(dbFactory: (env: Env) => Sql | null = createDatabase) {
   const app = new Hono<{ Bindings: Env }>();
 
@@ -37,7 +42,7 @@ export function createApp(dbFactory: (env: Env) => Sql | null = createDatabase) 
 
   app.use("/api/v1/*", async (c, next) => {
     const expected = c.env.HRMS_API_TOKEN;
-    const supplied = c.req.header("authorization")?.replace(/^Bearer\s+/i, "");
+    const supplied = c.req.header("authorization")?.replace(/^Bearer\\s+/i, "");
     if (!expected || expected.length < 32 || !supplied || !constantTimeEqual(supplied, expected)) {
       return c.json({ error: "unauthorized" }, 401);
     }
@@ -129,7 +134,7 @@ export function createApp(dbFactory: (env: Env) => Sql | null = createDatabase) 
 function parsePagination(limitRaw?: string, offsetRaw?: string): { limit: number; offset: number } | null {
   const limitText = limitRaw ?? "50";
   const offsetText = offsetRaw ?? "0";
-  if (!/^\d+$/.test(limitText) || !/^\d+$/.test(offsetText)) return null;
+  if (!/^\\d+$/.test(limitText) || !/^\\d+$/.test(offsetText)) return null;
   const limit = Number(limitText);
   const offset = Number(offsetText);
   if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100) return null;
@@ -141,13 +146,14 @@ function createDatabase(env: Env): Sql | null {
   // Hyperdrive is preferred for deployed Worker -> PostgreSQL connectivity.
   const connectionString = env.HRMS_DB?.connectionString ?? env.HRMS_DATABASE_URL;
   if (!connectionString) return null;
-  // Guard against accidentally configuring the ERP database by requiring an explicit
-  // HRMS database name. Production provisioning must use a distinct database/project.
-  const databaseName = (() => {
-    try { return new URL(connectionString).pathname.replace(/^\//, ""); } catch { return ""; }
-  })();
-  if (!databaseName.toLowerCase().includes("hrms") || databaseName.toLowerCase().includes("erp")) {
-    throw new Error("HRMS database name must include 'hrms'; refusing a potentially shared ERP database.");
+  let databaseName = "";
+  try {
+    databaseName = decodeURIComponent(new URL(connectionString).pathname.replace(/^\\//, ""));
+  } catch {
+    throw new Error("HRMS database connection must be a valid PostgreSQL URL.");
+  }
+  if (!isAllowedHrmsDatabase(databaseName, env.APP_ENV)) {
+    throw new Error("Refusing database connection: test/dev must use swp_hrms_test and production must use swp_hrms_prod.");
   }
   return postgres(connectionString, { max: 1, idle_timeout: 5, connect_timeout: 5, ssl: "require" });
 }
