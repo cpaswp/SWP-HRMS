@@ -1,7 +1,22 @@
 import { describe, expect, it } from "vitest";
-import app from "../src/index";
+import app, { isAllowedHrmsDatabase } from "../src/index";
 
 const env = { APP_ENV: "test", HRMS_API_TOKEN: "a".repeat(48) };
+
+describe("HRMS Worker database isolation", () => {
+  it("allows only the dedicated test database outside production", () => {
+    expect(isAllowedHrmsDatabase("swp_hrms_test", "test")).toBe(true);
+    expect(isAllowedHrmsDatabase("swp-hrms", "test")).toBe(false);
+    expect(isAllowedHrmsDatabase("swp_hrms_prod", "test")).toBe(false);
+    expect(isAllowedHrmsDatabase("other_hrms", "development")).toBe(false);
+  });
+
+  it("allows only the separately named production database in production", () => {
+    expect(isAllowedHrmsDatabase("swp_hrms_prod", "production")).toBe(true);
+    expect(isAllowedHrmsDatabase("swp_hrms_test", "production")).toBe(false);
+    expect(isAllowedHrmsDatabase("swp-hrms", "production")).toBe(false);
+  });
+});
 
 describe("HRMS Worker security and health", () => {
   it("returns service health without touching ERP", async () => {
@@ -34,7 +49,6 @@ describe("HRMS Worker security and health", () => {
     expect(response.status).toBe(503);
     expect(await response.json()).toEqual({ error: "database_not_configured" });
   });
-
 
   it("rejects malformed and excessive pagination before querying the database", async () => {
     const invalidQueries = [
