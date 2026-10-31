@@ -33,6 +33,19 @@ for (const file of files) {
     failures.push(`${file}: duplicate migration version ${version}`);
   }
   migrationVersions.set(version, file);
+
+  // HRMS migrations are additive only. Block destructive operations and writes
+  // outside the dedicated HRMS namespace before any database connection is used.
+  if (/\\b(?:DROP\\s+(?:TABLE|SCHEMA|DATABASE)|TRUNCATE\\s+(?:TABLE\\s+)?|ALTER\\s+DATABASE)\\b/i.test(source)) {
+    failures.push(`${file}: destructive DROP/TRUNCATE/DATABASE statements are forbidden`);
+  }
+  for (const match of source.matchAll(/\\b(?:INSERT\\s+INTO|UPDATE|DELETE\\s+FROM)\\s+([a-zA-Z_][a-zA-Z0-9_]*)/gi)) {
+    const target = match[1].toLowerCase();
+    if (!target.startsWith("hrms_")) failures.push(`${file}: non-HRMS data write target ${target}`);
+  }
+  if (/\\bCREATE\\s+SCHEMA\\b/i.test(source)) {
+    failures.push(`${file}: schema creation is not permitted in application migrations`);
+  }
   if (/\bCREATE\s+TABLE\s+(?!IF\s+NOT\s+EXISTS\b)/i.test(source)) {
     failures.push(`${file}: CREATE TABLE must use IF NOT EXISTS for safe re-runs`);
   }
@@ -76,5 +89,5 @@ if (failures.length) {
 }
 
 console.log(`Validated ${files.length} ordered HRMS migrations and ${createdTables.size} HRMS table declarations.`);
-console.log("All ALTER TABLE targets exist in the migration set; all migration ledger entries and HRMS table prefixes passed.");
+console.log("All ALTER TABLE targets exist; writes are HRMS-namespaced and destructive SQL is blocked.");
 console.log("Note: static validation does not replace executing migrations against an isolated PostgreSQL test database.");
