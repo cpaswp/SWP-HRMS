@@ -7,6 +7,8 @@ describe("HRMS Worker security and health", () => {
   it("returns service health without touching ERP", async () => {
     const response = await app.request("/api/health", {}, env);
     expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toContain("no-store");
+    expect(response.headers.get("x-content-type-options")).toBe("nosniff");
     expect(await response.json()).toMatchObject({ status: "ok", service: "hrms-worker", database: "not-configured" });
   });
 
@@ -43,7 +45,7 @@ describe("HRMS Worker security and health", () => {
       "?offset=1000001",
       "?offset=1.5",
     ];
-    for (const path of ["/api/v1/employees", "/api/v1/attendance", "/api/v1/leave-requests"]) {
+    for (const path of ["/api/v1/departments", "/api/v1/employees", "/api/v1/attendance", "/api/v1/leave-requests"]) {
       for (const query of invalidQueries) {
         const response = await app.request(path + query, {
           headers: { Authorization: "Bearer " + env.HRMS_API_TOKEN },
