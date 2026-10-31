@@ -36,14 +36,14 @@ for (const file of files) {
 
   // HRMS migrations are additive only. Block destructive operations and writes
   // outside the dedicated HRMS namespace before any database connection is used.
-  if (/\\b(?:DROP\s+(?:TABLE|SCHEMA|DATABASE)|TRUNCATE\s+(?:TABLE\s+)?|ALTER\s+DATABASE)\\b/i.test(source)) {
+  if (/\b(?:DROP\s+(?:TABLE|SCHEMA|DATABASE)|TRUNCATE\s+(?:TABLE\s+)?|ALTER\s+DATABASE)\b/i.test(source)) {
     failures.push(`${file}: destructive DROP/TRUNCATE/DATABASE statements are forbidden`);
   }
-  for (const match of source.matchAll(/\\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+([a-zA-Z_][a-zA-Z0-9_]*)/gi)) {
+  for (const match of source.matchAll(/\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+([a-zA-Z_][a-zA-Z0-9_]*)/gi)) {
     const target = match[1].toLowerCase();
     if (!target.startsWith("hrms_")) failures.push(`${file}: non-HRMS data write target ${target}`);
   }
-  if (/\\bCREATE\s+SCHEMA\\b/i.test(source)) {
+  if (/\bCREATE\s+SCHEMA\b/i.test(source)) {
     failures.push(`${file}: schema creation is not permitted in application migrations`);
   }
   if (/\bCREATE\s+TABLE\s+(?!IF\s+NOT\s+EXISTS\b)/i.test(source)) {
