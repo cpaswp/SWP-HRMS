@@ -13,6 +13,15 @@ type Sql = ReturnType<typeof postgres>;
 export function createApp(dbFactory: (env: Env) => Sql | null = createDatabase) {
   const app = new Hono<{ Bindings: Env }>();
 
+  app.use("/api/*", async (c, next) => {
+    await next();
+    c.header("Cache-Control", "no-store, private");
+    c.header("Pragma", "no-cache");
+    c.header("X-Content-Type-Options", "nosniff");
+    c.header("Referrer-Policy", "no-referrer");
+    c.header("X-Frame-Options", "DENY");
+  });
+
   app.get("/api/health", async (c) => {
     const db = dbFactory(c.env);
     if (!db) return c.json({ status: "ok", service: "hrms-worker", database: "not-configured" });
@@ -36,11 +45,14 @@ export function createApp(dbFactory: (env: Env) => Sql | null = createDatabase) 
   });
 
   app.get("/api/v1/departments", async (c) => {
+    const pagination = parsePagination(c.req.query("limit"), c.req.query("offset"));
+    if (!pagination) return c.json({ error: "invalid_pagination" }, 400);
+    const { limit, offset } = pagination;
     const db = dbFactory(c.env);
     if (!db) return c.json({ error: "database_not_configured" }, 503);
     try {
-      const rows = await db`SELECT id, code, name, parent_id, is_active FROM hrms_departments ORDER BY name LIMIT 500`;
-      return c.json({ data: rows });
+      const rows = await db`SELECT id, code, name, parent_id, is_active FROM hrms_departments ORDER BY name LIMIT ${limit} OFFSET ${offset}`;
+      return c.json({ data: rows, pagination: { limit, offset } });
     } catch {
       return c.json({ error: "database_unavailable" }, 503);
     } finally {
