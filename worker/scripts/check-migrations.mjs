@@ -17,7 +17,7 @@ for (const file of files) {
   const source = await readFile(path.join(migrationsDir, file), "utf8");
   migrationContents.push({ file, source });
   const version = file.replace(/\.sql$/, "");
-  const ledgerEntry = new RegExp("VALUES\s*\\(\s*['\"]" + version + "['\"]\s*\\)", "gi");
+  const ledgerEntry = new RegExp("VALUES\\s*[(]\\s*['\"]" + version + "['\"]\\s*[)]", "gi");
   const ledgerMatches = [...source.matchAll(ledgerEntry)];
   if (ledgerMatches.length !== 1) {
     failures.push(`${file}: expected exactly one ledger entry for ${version}; found ${ledgerMatches.length}`);
