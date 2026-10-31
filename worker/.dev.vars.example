@@ -1,5 +1,5 @@
 # Local-only values. Never commit real credentials.
-APP_ENV = "development"
-HRMS_API_TOKEN = "replace-with-a-long-random-token"
-# Optional for local tests only; point exclusively at the dedicated HRMS test database.
-HRMS_DATABASE_URL = "postgres://USER:PASSWORD@HOST/HRMS_TEST_DB?sslmode=require"
+APP_ENV = "test"
+HRMS_API_TOKEN = "replace-with-a-random-token-at-least-32-characters"
+# Use only the dedicated Neon test database named exactly swp_hrms_test.
+HRMS_DATABASE_URL = "postgres://USER:PASSWORD@HOST/swp_hrms_test?sslmode=require"
