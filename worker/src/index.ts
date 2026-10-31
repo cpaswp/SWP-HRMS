@@ -42,7 +42,7 @@ export function createApp(dbFactory: (env: Env) => Sql | null = createDatabase) 
 
   app.use("/api/v1/*", async (c, next) => {
     const expected = c.env.HRMS_API_TOKEN;
-    const supplied = c.req.header("authorization")?.replace(/^Bearer\\s+/i, "");
+    const supplied = c.req.header("authorization")?.replace(/^Bearer\s+/i, "");
     if (!expected || expected.length < 32 || !supplied || !constantTimeEqual(supplied, expected)) {
       return c.json({ error: "unauthorized" }, 401);
     }
@@ -134,7 +134,7 @@ export function createApp(dbFactory: (env: Env) => Sql | null = createDatabase) 
 function parsePagination(limitRaw?: string, offsetRaw?: string): { limit: number; offset: number } | null {
   const limitText = limitRaw ?? "50";
   const offsetText = offsetRaw ?? "0";
-  if (!/^\\d+$/.test(limitText) || !/^\\d+$/.test(offsetText)) return null;
+  if (!/^\d+$/.test(limitText) || !/^\d+$/.test(offsetText)) return null;
   const limit = Number(limitText);
   const offset = Number(offsetText);
   if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100) return null;
@@ -148,7 +148,7 @@ function createDatabase(env: Env): Sql | null {
   if (!connectionString) return null;
   let databaseName = "";
   try {
-    databaseName = decodeURIComponent(new URL(connectionString).pathname.replace(/^\\//, ""));
+    databaseName = decodeURIComponent(new URL(connectionString).pathname.replace(/^\//, ""));
   } catch {
     throw new Error("HRMS database connection must be a valid PostgreSQL URL.");
   }
